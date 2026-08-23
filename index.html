@@ -36,9 +36,9 @@
 
     <!-- Navbar -->
     <header class="p-4 bg-pastel-light flex justify-between items-center border-b border-pink-100 sticky top-0 z-30">
-        <span class="text-xl font-bold text-pastel-accent tracking-wide">Jellybear 🌸</span>
-        <button v-if="!isAdminLoggedIn" @click="showLoginModal = true" class="text-xs bg-white text-pastel-accent px-3 py-1.5 rounded-full border border-pastel-pink hover:bg-pastel-pink hover:text-white transition">Admin Login</button>
-        <button v-else @click="currentTab = currentTab === 'shop' ? 'admin' : 'shop'" class="text-xs bg-pastel-accent text-white px-3 py-1.5 rounded-full shadow-sm hover:opacity-90">
+        <span class="text-xl font-bold text-pastel-accent tracking-wide select-none">Jellybear 🌸</span>
+        <button v-if="!isAdminLoggedIn" @click="showLoginModal = true" class="text-xs bg-white text-pastel-accent px-3 py-1.5 rounded-full border border-pastel-pink hover:bg-pastel-pink hover:text-white active:scale-95 transition-all duration-150 shadow-sm">Admin Login</button>
+        <button v-else @click="currentTab = currentTab === 'shop' ? 'admin' : 'shop'" class="text-xs bg-pastel-accent text-white px-3 py-1.5 rounded-full shadow-sm hover:opacity-90 active:scale-95 transition-all duration-150">
             {{ currentTab === 'shop' ? 'เข้าหลังบ้าน ⚙️' : 'กลับหน้าสโตร์ 🛍️' }}
         </button>
     </header>
@@ -47,9 +47,9 @@
     <main v-if="currentTab === 'shop'">
         <!-- Cover & Profile -->
         <div class="relative">
-            <img :src="IMG_5718.png" class="w-full h-36 object-cover">
+            <img :src="shop.cover_image" class="w-full h-36 object-cover">
             <div class="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-                <img :src="IMG_5713.png" class="w-20 h-20 rounded-full border-4 border-white shadow-md object-cover bg-white">
+                <img :src="shop.profile_image" class="w-20 h-20 rounded-full border-4 border-white shadow-md object-cover bg-white">
             </div>
         </div>
 
@@ -57,7 +57,7 @@
         <div class="mt-12 text-center px-6">
             <h1 class="text-2xl font-bold text-pastel-accent">{{ shop.shop_name }}</h1>
             <p class="text-xs text-gray-500 mt-1">{{ shop.description }}</p>
-            <a href="https://line.me/R/ti/p/@582llrkz" target="_blank" class="inline-flex items-center text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full mt-2 font-medium border border-emerald-200">
+            <a href="https://line.me/R/ti/p/@582llrkz" target="_blank" class="inline-flex items-center text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full mt-2 font-medium border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition-all duration-150">
                 💬 Line : @582llrkz
             </a>
 
@@ -74,7 +74,7 @@
                 </div>
             </div>
 
-            <button @click="showReviewModal = true" class="w-full mt-4 bg-pastel-accent text-white py-3 rounded-2xl font-medium shadow-md hover:bg-pink-500 transition flex items-center justify-center gap-2">
+            <button @click="showReviewModal = true" class="w-full mt-4 bg-pastel-accent text-white py-3 rounded-2xl font-medium shadow-md hover:bg-pink-500 active:scale-95 transition-all duration-150 flex items-center justify-center gap-2">
                 <span>💖</span> เขียนรีวิวร้านค้า
             </button>
         </div>
@@ -95,12 +95,12 @@
                     </div>
                     <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] px-2 py-0.5 rounded-full font-medium">✔ ยืนยันแล้ว</span>
                 </div>
-                <div class="text-yellow-400 text-xs">{"⭐".repeat(item.rating)}</div>
+                <div class="text-yellow-400 text-xs">{{ "⭐".repeat(item.rating) }}</div>
                 <p class="text-xs text-gray-600 leading-relaxed">{{ item.review_text }}</p>
                 
                 <!-- Proof Images Gallery -->
                 <div v-if="item.images && item.images.length" class="flex gap-2 overflow-x-auto pt-2">
-                    <img v-for="(img, idx) in item.images" :key="idx" :src="img" @click="zoomImage(img)" class="w-16 h-16 rounded-xl object-cover cursor-pointer hover:opacity-80 border border-pink-50">
+                    <img v-for="(img, idx) in item.images" :key="idx" :src="img" @click="zoomImage(img)" class="w-16 h-16 rounded-xl object-cover cursor-pointer hover:opacity-80 active:scale-90 transition-all duration-150 border border-pink-50">
                 </div>
             </div>
         </div>
@@ -116,7 +116,7 @@
                     <div class="text-[10px] text-gray-500">จัดการรีวิวและตั้งค่าร้าน</div>
                 </div>
             </div>
-            <button @click="logout" class="text-xs text-red-400 border border-red-200 bg-white px-2.5 py-1 rounded-full">ออก</button>
+            <button @click="logout" class="text-xs text-red-400 border border-red-200 bg-white px-2.5 py-1 rounded-full hover:bg-red-50 active:scale-95 transition-all duration-150">ออก</button>
         </div>
 
         <!-- Quick Stats -->
@@ -129,6 +129,7 @@
         <!-- Manage Reviews Panel -->
         <div class="space-y-3">
             <h3 class="text-xs font-bold text-gray-600">📋 จัดการรีวิวทั้งหมด</h3>
+            <div v-if="reviews.length === 0" class="text-center py-6 text-xs text-gray-400 bg-white rounded-xl border border-pink-100">ยังไม่มีรายการรีวิวในระบบ</div>
             <div v-for="item in reviews" :key="item.id" class="bg-white p-3 rounded-xl border border-pink-100 text-xs space-y-2">
                 <div class="flex justify-between items-center">
                     <span class="font-bold text-pastel-text">{{ item.customer_name }}</span>
@@ -136,15 +137,15 @@
                         {{ item.status }}
                     </span>
                 </div>
-                <div class="text-yellow-400">{"⭐".repeat(item.rating)}</div>
+                <div class="text-yellow-400">{{ "⭐".repeat(item.rating) }}</div>
                 <p class="text-gray-600">{{ item.review_text }}</p>
                 <div v-if="item.images && item.images.length" class="flex gap-2">
-                    <img v-for="(img, idx) in item.images" :key="idx" :src="img" @click="zoomImage(img)" class="w-12 h-12 rounded-lg object-cover cursor-pointer">
+                    <img v-for="(img, idx) in item.images" :key="idx" :src="img" @click="zoomImage(img)" class="w-12 h-12 rounded-lg object-cover cursor-pointer hover:opacity-80 active:scale-90 transition-all duration-150">
                 </div>
                 <div class="flex justify-end gap-2 pt-2 border-t border-gray-50">
-                    <button v-if="item.status !== 'Approved'" @click="updateStatus(item.id, 'Approved')" class="bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-[10px]">อนุมัติ</button>
-                    <button v-if="item.status !== 'Rejected'" @click="updateStatus(item.id, 'Rejected')" class="bg-amber-500 text-white px-2.5 py-1 rounded-lg text-[10px]">ปฏิเสธ</button>
-                    <button @click="deleteReview(item.id)" class="bg-red-400 text-white px-2.5 py-1 rounded-lg text-[10px]">ลบ</button>
+                    <button v-if="item.status !== 'Approved'" @click="updateStatus(item.id, 'Approved')" class="bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-[10px] hover:bg-emerald-600 active:scale-95 transition-all duration-150">อนุมัติ</button>
+                    <button v-if="item.status !== 'Rejected'" @click="updateStatus(item.id, 'Rejected')" class="bg-amber-500 text-white px-2.5 py-1 rounded-lg text-[10px] hover:bg-amber-600 active:scale-95 transition-all duration-150">ปฏิเสธ</button>
+                    <button @click="deleteReview(item.id)" class="bg-red-400 text-white px-2.5 py-1 rounded-lg text-[10px] hover:bg-red-500 active:scale-95 transition-all duration-150">ลบ</button>
                 </div>
             </div>
         </div>
@@ -167,15 +168,17 @@
             <!-- Shop Info -->
             <div class="space-y-2">
                 <label class="block font-medium">ชื่อร้าน</label>
-                <input v-model="shop.shop_name" class="w-full p-2 border border-pink-200 rounded-xl bg-white">
+                <input v-model="shop.shop_name" class="w-full p-2 border border-pink-200 rounded-xl bg-white focus:outline-pastel-accent">
                 <label class="block font-medium">คำอธิบายร้าน</label>
-                <textarea v-model="shop.description" class="w-full p-2 border border-pink-200 rounded-xl bg-white"></textarea>
-                <label class="block font-medium">รูป Cover URL / File</label>
+                <textarea v-model="shop.description" class="w-full p-2 border border-pink-200 rounded-xl bg-white focus:outline-pastel-accent"></textarea>
+                
+                <label class="block font-medium">เปลี่ยนรูป Cover ร้าน</label>
                 <input type="file" @change="uploadShopImage($event, 'cover_image')" accept="image/*" class="w-full">
-                <label class="block font-medium">รูป Profile ร้าน URL / File</label>
+                
+                <label class="block font-medium">เปลี่ยนรูป Profile ร้าน</label>
                 <input type="file" @change="uploadShopImage($event, 'profile_image')" accept="image/*" class="w-full">
             </div>
-            <button @click="saveSettings" class="w-full bg-pastel-accent text-white py-2 rounded-xl font-bold">บันทึกข้อมูลตั้งค่า</button>
+            <button @click="saveSettings" class="w-full bg-pastel-accent text-white py-2 rounded-xl font-bold hover:bg-pink-500 active:scale-95 transition-all duration-150 shadow-sm">บันทึกข้อมูลตั้งค่า ✨</button>
         </div>
     </main>
 
@@ -185,20 +188,20 @@
             <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3 shadow-2xl border border-pink-100 text-xs">
                 <div class="flex justify-between items-center border-b border-pink-100 pb-2">
                     <h3 class="font-bold text-sm text-pastel-accent">💖 เขียนรีวิวให้ Jellybear</h3>
-                    <button @click="showReviewModal = false" class="text-gray-400">✕</button>
+                    <button @click="showReviewModal = false" class="text-gray-400 hover:text-gray-600 active:scale-90 transition-all duration-150">✕</button>
                 </div>
-                <input v-model="newReview.customer_name" placeholder="ชื่อ / ชื่อเล่น *" class="w-full p-2.5 border border-pink-200 rounded-xl outline-none">
+                <input v-model="newReview.customer_name" placeholder="ชื่อ / ชื่อเล่น *" class="w-full p-2.5 border border-pink-200 rounded-xl outline-none focus:border-pastel-accent">
                 
                 <div>
                     <span class="text-gray-500">ให้คะแนนร้านค้า:</span>
-                    <div class="flex gap-1 text-xl text-yellow-400 mt-1 cursor-pointer">
-                        <span v-for="star in 5" :key="star" @click="newReview.rating = star">
+                    <div class="flex gap-1 text-xl text-yellow-400 mt-1 cursor-pointer select-none">
+                        <span v-for="star in 5" :key="star" @click="newReview.rating = star" class="hover:scale-125 active:scale-90 transition-all duration-150 inline-block">
                             {{ star <= newReview.rating ? '⭐' : '☆' }}
                         </span>
                     </div>
                 </div>
 
-                <textarea v-model="newReview.review_text" placeholder="ข้อความรีวิว..." class="w-full p-2.5 border border-pink-200 rounded-xl h-20 outline-none"></textarea>
+                <textarea v-model="newReview.review_text" placeholder="ข้อความรีวิว..." class="w-full p-2.5 border border-pink-200 rounded-xl h-20 outline-none focus:border-pastel-accent"></textarea>
 
                 <div>
                     <label class="block text-gray-500 mb-1">รูปหลักฐานการซื้อขาย (แนบได้หลายรูป):</label>
@@ -206,12 +209,12 @@
                     <div class="flex gap-2 mt-2 overflow-x-auto">
                         <div v-for="(img, i) in newReview.images" :key="i" class="relative flex-shrink-0">
                             <img :src="img" class="w-12 h-12 rounded-lg object-cover">
-                            <button @click="newReview.images.splice(i, 1)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">✕</button>
+                            <button @click="newReview.images.splice(i, 1)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] hover:bg-red-600 active:scale-90 transition-all duration-150">✕</button>
                         </div>
                     </div>
                 </div>
 
-                <button @click="submitReview" class="w-full bg-pastel-accent text-white py-2.5 rounded-xl font-bold shadow-sm">ส่งรีวิวเรียบร้อย 💗</button>
+                <button @click="submitReview" class="w-full bg-pastel-accent text-white py-2.5 rounded-xl font-bold shadow-sm hover:bg-pink-500 active:scale-95 transition-all duration-150">ส่งรีวิวเรียบร้อย 💗</button>
             </div>
         </div>
     </transition>
@@ -221,11 +224,11 @@
         <div v-if="showLoginModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white w-full max-w-xs rounded-3xl p-5 space-y-3 text-xs">
                 <h3 class="font-bold text-center text-sm text-pastel-accent">🔒 เข้าสู่ระบบ Admin</h3>
-                <input v-model="loginForm.username" placeholder="Username" class="w-full p-2 border border-pink-200 rounded-xl">
-                <input v-model="loginForm.password" type="password" placeholder="Password" class="w-full p-2 border border-pink-200 rounded-xl">
+                <input v-model="loginForm.username" placeholder="Username" class="w-full p-2 border border-pink-200 rounded-xl outline-none focus:border-pastel-accent">
+                <input v-model="loginForm.password" type="password" placeholder="Password" class="w-full p-2 border border-pink-200 rounded-xl outline-none focus:border-pastel-accent">
                 <div class="flex gap-2 pt-2">
-                    <button @click="showLoginModal = false" class="w-1/2 bg-gray-100 py-2 rounded-xl text-gray-600">ยกเลิก</button>
-                    <button @click="login" class="w-1/2 bg-pastel-accent text-white py-2 rounded-xl font-bold">เข้าสู่ระบบ</button>
+                    <button @click="showLoginModal = false" class="w-1/2 bg-gray-100 py-2 rounded-xl text-gray-600 hover:bg-gray-200 active:scale-95 transition-all duration-150">ยกเลิก</button>
+                    <button @click="login" class="w-1/2 bg-pastel-accent text-white py-2 rounded-xl font-bold hover:bg-pink-500 active:scale-95 transition-all duration-150">เข้าสู่ระบบ</button>
                 </div>
             </div>
         </div>
@@ -266,18 +269,7 @@ createApp({
                 profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
                 cover_image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600'
             },
-            reviews: JSON.parse(localStorage.getItem('jb_reviews')) || [
-                {
-                    id: 1,
-                    customer_name: 'น้องแป้ง',
-                    customer_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100',
-                    rating: 5,
-                    review_text: 'ได้รับสติกเกอร์เร็วมาก ส่งไว ใจดีมีของแถมด้วยค่ะ 💕',
-                    status: 'Approved',
-                    created_at: '24/08/2026',
-                    images: ['https://images.unsplash.com/photo-1607344645866-009c320c5ab8?auto=format&fit=crop&q=80&w=200']
-                }
-            ],
+            reviews: JSON.parse(localStorage.getItem('jb_reviews')) || [],
             newReview: { customer_name: '', rating: 5, review_text: '', images: [] }
         }
     },
@@ -290,6 +282,19 @@ createApp({
             const sum = this.approvedReviews.reduce((acc, curr) => acc + curr.rating, 0);
             return (sum / this.approvedReviews.length).toFixed(1);
         }
+    },
+    mounted() {
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'jb_shop' && e.newValue) {
+                this.shop = JSON.parse(e.newValue);
+            }
+            if (e.key === 'jb_admin' && e.newValue) {
+                this.admin = JSON.parse(e.newValue);
+            }
+            if (e.key === 'jb_reviews' && e.newValue) {
+                this.reviews = JSON.parse(e.newValue);
+            }
+        });
     },
     methods: {
         saveState() {
@@ -304,7 +309,7 @@ createApp({
                 this.currentTab = 'admin';
                 this.loginForm = { username: '', password: '' };
             } else {
-                alert('รหัสผ่านไม่ถูกต้องค่ะ!');
+                alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้องค่ะ!');
             }
         },
         logout() {
@@ -356,6 +361,7 @@ createApp({
                 reader.onload = (evt) => {
                     this.admin.profile_image = evt.target.result;
                     this.saveState();
+                    alert('อัปเดตรูปโปรไฟล์ Admin เรียบร้อยแล้วค่ะ! 🌸');
                 };
                 reader.readAsDataURL(file);
             }
@@ -364,7 +370,11 @@ createApp({
             const file = e.target.files[0];
             if(file) {
                 const reader = new FileReader();
-                reader.onload = (evt) => this.shop[key] = evt.target.result;
+                reader.onload = (evt) => {
+                    this.shop[key] = evt.target.result;
+                    this.saveState();
+                    alert('อัปเดตรูปภาพเรียบร้อยแล้วค่ะ! 🌸');
+                };
                 reader.readAsDataURL(file);
             }
         },
