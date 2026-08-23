@@ -30,6 +30,27 @@
         .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
         .modal-enter-from, .modal-leave-to { opacity: 0; }
     </style>
+
+    <!-- Firebase SDK v10.8.0 -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+      import { getFirestore, doc, onSnapshot, setDoc, collection, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+      // ⚠️ นำค่า Config จาก Firebase Console ของคุณมาวางทับที่นี่
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "XXXXX",
+        appId: "XXXXX"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      window.fb = { db, doc, onSnapshot, setDoc, collection, addDoc, updateDoc, deleteDoc, query, orderBy };
+    </script>
 </head>
 <body>
 <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative pb-20 border-x border-pink-100">
@@ -45,7 +66,7 @@
 
     <!-- FRONTEND: Shop Profile & Reviews -->
     <main v-if="currentTab === 'shop'">
-        <!-- Cover & Profile (แก้ไขให้ดึงข้อมูลจาก shop object) -->
+        <!-- Cover & Profile -->
         <div class="relative">
             <img :src="shop.cover_image || defaultCover" class="w-full h-36 object-cover">
             <div class="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
@@ -86,8 +107,11 @@
             
             <div v-for="item in approvedReviews" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm border border-pink-100 space-y-2">
                 <div class="flex justify-between items-start">
-                    <div class="flex items-center gap-2">
-                        <img :src="item.customer_avatar || defaultAvatar" class="w-8 h-8 rounded-full object-cover">
+                    <div class="flex items-center gap-2.5">
+                        <!-- 🎨 CUSTOM AVATAR: ชื่อย่อ + พาสเทล Gradient -->
+                        <div :class="getAvatarGradient(item.customer_name)" class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm select-none border border-white/50">
+                            {{ getAvatarInitials(item.customer_name) }}
+                        </div>
                         <div>
                             <div class="text-xs font-semibold text-pastel-text">{{ item.customer_name }}</div>
                             <div class="text-[10px] text-gray-400">{{ item.created_at }}</div>
@@ -132,7 +156,12 @@
             <div v-if="reviews.length === 0" class="text-center py-6 text-xs text-gray-400 bg-white rounded-xl border border-pink-100">ยังไม่มีรายการรีวิวในระบบ</div>
             <div v-for="item in reviews" :key="item.id" class="bg-white p-3 rounded-xl border border-pink-100 text-xs space-y-2">
                 <div class="flex justify-between items-center">
-                    <span class="font-bold text-pastel-text">{{ item.customer_name }}</span>
+                    <div class="flex items-center gap-2">
+                        <div :class="getAvatarGradient(item.customer_name)" class="w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px]">
+                            {{ getAvatarInitials(item.customer_name) }}
+                        </div>
+                        <span class="font-bold text-pastel-text">{{ item.customer_name }}</span>
+                    </div>
                     <span :class="{'text-amber-500 bg-amber-50': item.status==='Pending', 'text-emerald-500 bg-emerald-50': item.status==='Approved', 'text-red-500 bg-red-50': item.status==='Rejected'}" class="px-2 py-0.5 rounded-full text-[10px] font-medium border">
                         {{ item.status }}
                     </span>
@@ -154,7 +183,6 @@
         <div class="bg-pastel-light p-4 rounded-2xl border border-pink-100 space-y-4 text-xs">
             <h3 class="font-bold text-pastel-accent text-sm">⚙️ ตั้งค่าส่วนตัว & ร้านค้า</h3>
             
-            <!-- Admin Profile -->
             <div class="space-y-1">
                 <label class="block font-medium">รูปโปรไฟล์ Admin</label>
                 <div class="flex items-center gap-3">
@@ -165,7 +193,6 @@
             
             <hr class="border-pink-200">
 
-            <!-- Shop Info -->
             <div class="space-y-2">
                 <label class="block font-medium">ชื่อร้าน</label>
                 <input v-model="shop.shop_name" class="w-full p-2 border border-pink-200 rounded-xl bg-white focus:outline-pastel-accent">
@@ -191,7 +218,9 @@
                     <input type="file" @change="uploadShopImage($event, 'profile_image')" accept="image/*" class="w-full text-[10px]">
                 </div>
             </div>
-            <button @click="saveSettings" class="w-full bg-pastel-accent text-white py-2 rounded-xl font-bold hover:bg-pink-500 active:scale-95 transition-all duration-150 shadow-sm">บันทึกข้อมูลตั้งค่า ✨</button>
+            <button @click="saveSettings" :disabled="isSaving" class="w-full bg-pastel-accent text-white py-2 rounded-xl font-bold hover:bg-pink-500 active:scale-95 transition-all duration-150 shadow-sm disabled:opacity-50">
+                {{ isSaving ? 'กำลังบันทึก...' : 'บันทึกข้อมูลตั้งค่า ✨' }}
+            </button>
         </div>
     </main>
 
@@ -203,6 +232,18 @@
                     <h3 class="font-bold text-sm text-pastel-accent">💖 เขียนรีวิวให้ Jellybear</h3>
                     <button @click="showReviewModal = false" class="text-gray-400 hover:text-gray-600 active:scale-90 transition-all duration-150">✕</button>
                 </div>
+                
+                <!-- Preview Avatar -->
+                <div class="flex items-center gap-3 bg-pastel-light p-2.5 rounded-2xl border border-pink-100">
+                    <div :class="getAvatarGradient(newReview.customer_name || 'J')" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shadow-sm border border-white/50">
+                        {{ getAvatarInitials(newReview.customer_name || 'J') }}
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-gray-400">ตัวอย่างรูปโปรไฟล์ของคุณ</div>
+                        <div class="font-bold text-pastel-accent">{{ newReview.customer_name || 'ชื่อของคุณ' }}</div>
+                    </div>
+                </div>
+
                 <input v-model="newReview.customer_name" placeholder="ชื่อ / ชื่อเล่น *" class="w-full p-2.5 border border-pink-200 rounded-xl outline-none focus:border-pastel-accent">
                 
                 <div>
@@ -227,7 +268,9 @@
                     </div>
                 </div>
 
-                <button @click="submitReview" class="w-full bg-pastel-accent text-white py-2.5 rounded-xl font-bold shadow-sm hover:bg-pink-500 active:scale-95 transition-all duration-150">ส่งรีวิวเรียบร้อย 💗</button>
+                <button @click="submitReview" :disabled="isSubmitting" class="w-full bg-pastel-accent text-white py-2.5 rounded-xl font-bold shadow-sm hover:bg-pink-500 active:scale-95 transition-all duration-150 disabled:opacity-50">
+                    {{ isSubmitting ? 'กำลังส่งรีวิว...' : 'ส่งรีวิวเรียบร้อย 💗' }}
+                </button>
             </div>
         </div>
     </transition>
@@ -266,24 +309,34 @@ createApp({
             showReviewModal: false,
             showLoginModal: false,
             isAdminLoggedIn: false,
+            isSaving: false,
+            isSubmitting: false,
             activeZoomImage: null,
             defaultAvatar: 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png',
             defaultCover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600',
             loginForm: { username: '', password: '' },
             
-            // Database State (ดึงจาก LocalStorage)
-            admin: JSON.parse(localStorage.getItem('jb_admin')) || {
+            // ชุดสีโทนพาสเทลสวยๆ
+            pastelGradients: [
+                'bg-gradient-to-tr from-pink-300 to-rose-300',
+                'bg-gradient-to-tr from-purple-300 to-pink-300',
+                'bg-gradient-to-tr from-amber-200 to-pink-300',
+                'bg-gradient-to-tr from-teal-200 to-emerald-300',
+                'bg-gradient-to-tr from-sky-300 to-indigo-300'
+            ],
+
+            admin: {
                 username: 'jellybear',
                 password: 'idea0707',
                 profile_image: ''
             },
-            shop: JSON.parse(localStorage.getItem('jb_shop')) || {
+            shop: {
                 shop_name: 'Jellybear',
                 description: 'สติกเกอร์ไลน์ หารแอพพรีเมียม ฟอนต์ลายมือ ออกแบบป้าย 🎀',
                 profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
                 cover_image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600'
             },
-            reviews: JSON.parse(localStorage.getItem('jb_reviews')) || [],
+            reviews: [],
             newReview: { customer_name: '', rating: 5, review_text: '', images: [] }
         }
     },
@@ -298,30 +351,57 @@ createApp({
         }
     },
     mounted() {
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'jb_shop' && e.newValue) {
-                this.shop = JSON.parse(e.newValue);
+        const timer = setInterval(() => {
+            if (window.fb) {
+                clearInterval(timer);
+                this.initFirebaseRealtime();
             }
-            if (e.key === 'jb_admin' && e.newValue) {
-                this.admin = JSON.parse(e.newValue);
-            }
-            if (e.key === 'jb_reviews' && e.newValue) {
-                this.reviews = JSON.parse(e.newValue);
-            }
-        });
+        }, 100);
     },
     methods: {
-        saveState() {
-            try {
-                localStorage.setItem('jb_admin', JSON.stringify(this.admin));
-                localStorage.setItem('jb_shop', JSON.stringify(this.shop));
-                localStorage.setItem('jb_reviews', JSON.stringify(this.reviews));
-            } catch (err) {
-                alert('ไฟล์ภาพใหญ่เกินไป กรุณาใช้ไฟล์ภาพที่มีขนาดเล็กกว่านี้ค่ะ');
-            }
+        // ✨ ดึงตัวอักษรแรกของชื่อ
+        getAvatarInitials(name) {
+            if (!name) return '💖';
+            return name.trim().charAt(0).toUpperCase();
         },
-        // ฟังก์ชันช่วยย่อขนาดรูปภาพก่อนแปลงเป็น Base64 ป้องกัน LocalStorage เต็ม
-        compressImage(file, maxWidth, callback) {
+
+        // ✨ เลือก Gradient ตามชื่อของลูกค้าแบบเสถียร (คนเดิมจะได้สีเดิมเสมอ)
+        getAvatarGradient(name) {
+            if (!name) return this.pastelGradients[0];
+            let charCodeSum = 0;
+            for (let i = 0; i < name.length; i++) {
+                charCodeSum += name.charCodeAt(i);
+            }
+            return this.pastelGradients[charCodeSum % this.pastelGradients.length];
+        },
+
+        initFirebaseRealtime() {
+            const { db, doc, onSnapshot, collection, query, orderBy } = window.fb;
+
+            onSnapshot(doc(db, "jellybear_config", "shop"), (docSnap) => {
+                if (docSnap.exists()) {
+                    this.shop = { ...this.shop, ...docSnap.data() };
+                }
+            });
+
+            onSnapshot(doc(db, "jellybear_config", "admin"), (docSnap) => {
+                if (docSnap.exists()) {
+                    this.admin = { ...this.admin, ...docSnap.data() };
+                }
+            });
+
+            const reviewsRef = collection(db, "jellybear_reviews");
+            const q = query(reviewsRef, orderBy("timestamp", "desc"));
+            
+            onSnapshot(q, (snapshot) => {
+                this.reviews = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+            });
+        },
+
+        compressImage(file, maxWidth, quality, callback) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
@@ -340,14 +420,14 @@ createApp({
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // บีบอัดไฟล์ภาพเป็น jpeg ความคมชัด 0.8
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
                     callback(dataUrl);
                 };
                 img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         },
+
         login() {
             if(this.loginForm.username === this.admin.username && this.loginForm.password === this.admin.password) {
                 this.isAdminLoggedIn = true;
@@ -358,74 +438,105 @@ createApp({
                 alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้องค่ะ!');
             }
         },
+
         logout() {
             this.isAdminLoggedIn = false;
             this.currentTab = 'shop';
         },
+
         handleProofUpload(e) {
             const files = Array.from(e.target.files);
+            if(this.newReview.images.length + files.length > 5) {
+                alert('แนบรูปได้สูงสุดครั้งละ 5 รูปนะคะ');
+                return;
+            }
             files.forEach(file => {
-                this.compressImage(file, 600, (compressedData) => {
+                this.compressImage(file, 400, 0.6, (compressedData) => {
                     this.newReview.images.push(compressedData);
                 });
             });
         },
-        submitReview() {
+
+        async submitReview() {
             if(!this.newReview.customer_name || !this.newReview.review_text) {
                 alert('กรุณากรอกชื่อและข้อความรีวิวให้ครบถ้วนนะคะ');
                 return;
             }
-            this.reviews.unshift({
-                id: Date.now(),
-                ...this.newReview,
-                customer_avatar: this.defaultAvatar,
-                status: 'Pending',
-                created_at: new Date().toLocaleDateString('th-TH')
-            });
-            this.saveState();
-            this.newReview = { customer_name: '', rating: 5, review_text: '', images: [] };
-            this.showReviewModal = false;
-            alert('ส่งรีวิวเรียบร้อยแล้ว 💗 รอแอดมินตรวจสอบนะคะ');
-        },
-        updateStatus(id, status) {
-            const idx = this.reviews.findIndex(r => r.id === id);
-            if(idx !== -1) {
-                this.reviews[idx].status = status;
-                this.saveState();
+
+            this.isSubmitting = true;
+            try {
+                const { db, collection, addDoc } = window.fb;
+                await addDoc(collection(db, "jellybear_reviews"), {
+                    ...this.newReview,
+                    status: 'Pending',
+                    created_at: new Date().toLocaleDateString('th-TH'),
+                    timestamp: Date.now()
+                });
+
+                this.newReview = { customer_name: '', rating: 5, review_text: '', images: [] };
+                this.showReviewModal = false;
+                alert('ส่งรีวิวเรียบร้อยแล้ว 💗 รอแอดมินตรวจสอบนะคะ');
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการส่งรีวิว กรุณาลองใหม่อีกครั้งค่ะ');
+            } finally {
+                this.isSubmitting = false;
             }
         },
-        deleteReview(id) {
+
+        async updateStatus(id, status) {
+            try {
+                const { db, doc, updateDoc } = window.fb;
+                await updateDoc(doc(db, "jellybear_reviews", id), { status });
+            } catch (err) {
+                alert('ไม่สามารถอัปเดตสถานะได้ค่ะ');
+            }
+        },
+
+        async deleteReview(id) {
             if(confirm('ต้องการลบรีวิวนี้ใช่ไหมคะ?')) {
-                this.reviews = this.reviews.filter(r => r.id !== id);
-                this.saveState();
+                try {
+                    const { db, doc, deleteDoc } = window.fb;
+                    await deleteDoc(doc(db, "jellybear_reviews", id));
+                } catch (err) {
+                    alert('ไม่สามารถลบรีวิวได้ค่ะ');
+                }
             }
         },
+
         uploadAdminAvatar(e) {
             const file = e.target.files[0];
             if(file) {
-                this.compressImage(file, 300, (compressedData) => {
+                this.compressImage(file, 200, 0.7, (compressedData) => {
                     this.admin.profile_image = compressedData;
-                    this.saveState();
-                    alert('อัปเดตรูปโปรไฟล์ Admin เรียบร้อยแล้วค่ะ! 🌸');
                 });
             }
         },
+
         uploadShopImage(e, key) {
             const file = e.target.files[0];
             if(file) {
-                // กำหนดความกว้างสูงสุด รูปปกใช้ 800px รูปโปรไฟล์ใช้ 300px
-                const maxWidth = key === 'cover_image' ? 800 : 300;
-                this.compressImage(file, maxWidth, (compressedData) => {
+                const maxWidth = key === 'cover_image' ? 600 : 200;
+                this.compressImage(file, maxWidth, 0.7, (compressedData) => {
                     this.shop[key] = compressedData;
-                    this.saveState();
-                    alert('อัปเดตรูปภาพเรียบร้อยแล้วค่ะ! 🌸');
                 });
             }
         },
-        saveSettings() {
-            this.saveState();
-            alert('บันทึกข้อมูลร้านค้าเรียบร้อยแล้ว ✨');
+
+        async saveSettings() {
+            this.isSaving = true;
+            try {
+                const { db, doc, setDoc } = window.fb;
+                await setDoc(doc(db, "jellybear_config", "shop"), this.shop);
+                await setDoc(doc(db, "jellybear_config", "admin"), this.admin);
+
+                alert('บันทึกข้อมูลตั้งค่าเรียบร้อยแล้ว ✨ !');
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            } finally {
+                this.isSaving = false;
+            }
         },
+
         zoomImage(img) {
             this.activeZoomImage = img;
         }
