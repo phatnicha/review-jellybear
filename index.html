@@ -45,11 +45,11 @@
 
     <!-- FRONTEND: Shop Profile & Reviews -->
     <main v-if="currentTab === 'shop'">
-        <!-- Cover & Profile -->
+        <!-- Cover & Profile (แก้ไขให้ดึงข้อมูลจาก shop object) -->
         <div class="relative">
-            <img :src="IMG_5718.png" class="w-full h-36 object-cover">
+            <img :src="shop.cover_image || defaultCover" class="w-full h-36 object-cover">
             <div class="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
-                <img :src="IMG_5713.png" class="w-20 h-20 rounded-full border-4 border-white shadow-md object-cover bg-white">
+                <img :src="shop.profile_image || defaultAvatar" class="w-20 h-20 rounded-full border-4 border-white shadow-md object-cover bg-white">
             </div>
         </div>
 
@@ -158,7 +158,7 @@
             <div class="space-y-1">
                 <label class="block font-medium">รูปโปรไฟล์ Admin</label>
                 <div class="flex items-center gap-3">
-                    <img :src="admin.profile_image || defaultAvatar" class="w-12 h-12 rounded-full object-cover bg-white">
+                    <img :src="admin.profile_image || defaultAvatar" class="w-12 h-12 rounded-full object-cover bg-white border border-pink-100">
                     <input type="file" @change="uploadAdminAvatar" accept="image/*" class="text-[10px]">
                 </div>
             </div>
@@ -169,14 +169,27 @@
             <div class="space-y-2">
                 <label class="block font-medium">ชื่อร้าน</label>
                 <input v-model="shop.shop_name" class="w-full p-2 border border-pink-200 rounded-xl bg-white focus:outline-pastel-accent">
+                
                 <label class="block font-medium">คำอธิบายร้าน</label>
                 <textarea v-model="shop.description" class="w-full p-2 border border-pink-200 rounded-xl bg-white focus:outline-pastel-accent"></textarea>
                 
-                <label class="block font-medium">เปลี่ยนรูป Cover ร้าน</label>
-                <input type="file" @change="uploadShopImage($event, 'cover_image')" accept="image/*" class="w-full">
+                <div class="space-y-1 pt-1">
+                    <label class="block font-medium">เปลี่ยนรูป Cover ร้าน</label>
+                    <div class="flex items-center gap-2 mb-1" v-if="shop.cover_image">
+                        <img :src="shop.cover_image" class="w-16 h-8 object-cover rounded border">
+                        <span class="text-[10px] text-emerald-600">มีรูปปัจจุบันแล้ว</span>
+                    </div>
+                    <input type="file" @change="uploadShopImage($event, 'cover_image')" accept="image/*" class="w-full text-[10px]">
+                </div>
                 
-                <label class="block font-medium">เปลี่ยนรูป Profile ร้าน</label>
-                <input type="file" @change="uploadShopImage($event, 'profile_image')" accept="image/*" class="w-full">
+                <div class="space-y-1 pt-1">
+                    <label class="block font-medium">เปลี่ยนรูป Profile ร้าน</label>
+                    <div class="flex items-center gap-2 mb-1" v-if="shop.profile_image">
+                        <img :src="shop.profile_image" class="w-8 h-8 object-cover rounded-full border">
+                        <span class="text-[10px] text-emerald-600">มีรูปปัจจุบันแล้ว</span>
+                    </div>
+                    <input type="file" @change="uploadShopImage($event, 'profile_image')" accept="image/*" class="w-full text-[10px]">
+                </div>
             </div>
             <button @click="saveSettings" class="w-full bg-pastel-accent text-white py-2 rounded-xl font-bold hover:bg-pink-500 active:scale-95 transition-all duration-150 shadow-sm">บันทึกข้อมูลตั้งค่า ✨</button>
         </div>
@@ -205,7 +218,7 @@
 
                 <div>
                     <label class="block text-gray-500 mb-1">รูปหลักฐานการซื้อขาย (แนบได้หลายรูป):</label>
-                    <input type="file" multiple @change="handleProofUpload" accept="image/*" class="w-full">
+                    <input type="file" multiple @change="handleProofUpload" accept="image/*" class="w-full text-[10px]">
                     <div class="flex gap-2 mt-2 overflow-x-auto">
                         <div v-for="(img, i) in newReview.images" :key="i" class="relative flex-shrink-0">
                             <img :src="img" class="w-12 h-12 rounded-lg object-cover">
@@ -255,13 +268,14 @@ createApp({
             isAdminLoggedIn: false,
             activeZoomImage: null,
             defaultAvatar: 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png',
+            defaultCover: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600',
             loginForm: { username: '', password: '' },
             
-            // Database State
+            // Database State (ดึงจาก LocalStorage)
             admin: JSON.parse(localStorage.getItem('jb_admin')) || {
                 username: 'jellybear',
                 password: 'idea0707',
-                profile_image: 'https://cdn-icons-png.flaticon.com/512/4140/4140047.png'
+                profile_image: ''
             },
             shop: JSON.parse(localStorage.getItem('jb_shop')) || {
                 shop_name: 'Jellybear',
@@ -298,9 +312,41 @@ createApp({
     },
     methods: {
         saveState() {
-            localStorage.setItem('jb_admin', JSON.stringify(this.admin));
-            localStorage.setItem('jb_shop', JSON.stringify(this.shop));
-            localStorage.setItem('jb_reviews', JSON.stringify(this.reviews));
+            try {
+                localStorage.setItem('jb_admin', JSON.stringify(this.admin));
+                localStorage.setItem('jb_shop', JSON.stringify(this.shop));
+                localStorage.setItem('jb_reviews', JSON.stringify(this.reviews));
+            } catch (err) {
+                alert('ไฟล์ภาพใหญ่เกินไป กรุณาใช้ไฟล์ภาพที่มีขนาดเล็กกว่านี้ค่ะ');
+            }
+        },
+        // ฟังก์ชันช่วยย่อขนาดรูปภาพก่อนแปลงเป็น Base64 ป้องกัน LocalStorage เต็ม
+        compressImage(file, maxWidth, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // บีบอัดไฟล์ภาพเป็น jpeg ความคมชัด 0.8
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    callback(dataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         },
         login() {
             if(this.loginForm.username === this.admin.username && this.loginForm.password === this.admin.password) {
@@ -319,9 +365,9 @@ createApp({
         handleProofUpload(e) {
             const files = Array.from(e.target.files);
             files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (evt) => this.newReview.images.push(evt.target.result);
-                reader.readAsDataURL(file);
+                this.compressImage(file, 600, (compressedData) => {
+                    this.newReview.images.push(compressedData);
+                });
             });
         },
         submitReview() {
@@ -357,25 +403,23 @@ createApp({
         uploadAdminAvatar(e) {
             const file = e.target.files[0];
             if(file) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    this.admin.profile_image = evt.target.result;
+                this.compressImage(file, 300, (compressedData) => {
+                    this.admin.profile_image = compressedData;
                     this.saveState();
                     alert('อัปเดตรูปโปรไฟล์ Admin เรียบร้อยแล้วค่ะ! 🌸');
-                };
-                reader.readAsDataURL(file);
+                });
             }
         },
         uploadShopImage(e, key) {
             const file = e.target.files[0];
             if(file) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    this.shop[key] = evt.target.result;
+                // กำหนดความกว้างสูงสุด รูปปกใช้ 800px รูปโปรไฟล์ใช้ 300px
+                const maxWidth = key === 'cover_image' ? 800 : 300;
+                this.compressImage(file, maxWidth, (compressedData) => {
+                    this.shop[key] = compressedData;
                     this.saveState();
                     alert('อัปเดตรูปภาพเรียบร้อยแล้วค่ะ! 🌸');
-                };
-                reader.readAsDataURL(file);
+                });
             }
         },
         saveSettings() {
