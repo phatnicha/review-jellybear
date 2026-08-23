@@ -1,1 +1,382 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jellybear - ร้านรีวิวสุดน่ารัก 🌸</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pastel: {
+                            pink: '#FFD1DC',
+                            light: '#FFF5F7',
+                            soft: '#FFE4E8',
+                            accent: '#FF7B9C',
+                            text: '#5E4B56'
+                        }
+                    },
+                    fontFamily: { mitr: ['Mitr', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Mitr', sans-serif; background-color: #FFF5F7; color: #5E4B56; }
+        .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; }
+        .modal-enter-from, .modal-leave-to { opacity: 0; }
+    </style>
+</head>
+<body>
+<div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-xl relative pb-20 border-x border-pink-100">
 
+    <!-- Navbar -->
+    <header class="p-4 bg-pastel-light flex justify-between items-center border-b border-pink-100 sticky top-0 z-30">
+        <span class="text-xl font-bold text-pastel-accent tracking-wide">Jellybear 🌸</span>
+        <button v-if="!isAdminLoggedIn" @click="showLoginModal = true" class="text-xs bg-white text-pastel-accent px-3 py-1.5 rounded-full border border-pastel-pink hover:bg-pastel-pink hover:text-white transition">Admin Login</button>
+        <button v-else @click="currentTab = currentTab === 'shop' ? 'admin' : 'shop'" class="text-xs bg-pastel-accent text-white px-3 py-1.5 rounded-full shadow-sm hover:opacity-90">
+            {{ currentTab === 'shop' ? 'เข้าหลังบ้าน ⚙️' : 'กลับหน้าสโตร์ 🛍️' }}
+        </button>
+    </header>
+
+    <!-- FRONTEND: Shop Profile & Reviews -->
+    <main v-if="currentTab === 'shop'">
+        <!-- Cover & Profile -->
+        <div class="relative">
+            <img :src="shop.cover_image" class="w-full h-36 object-cover">
+            <div class="absolute -bottom-10 left-1/2 transform -translate-x-1/2">
+                <img :src="shop.profile_image" class="w-20 h-20 rounded-full border-4 border-white shadow-md object-cover bg-white">
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="mt-12 text-center px-6">
+            <h1 class="text-2xl font-bold text-pastel-accent">{{ shop.shop_name }}</h1>
+            <p class="text-xs text-gray-500 mt-1">{{ shop.description }}</p>
+            <a href="https://line.me/R/ti/p/@582llrkz" target="_blank" class="inline-flex items-center text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full mt-2 font-medium border border-emerald-200">
+                💬 Line : @582llrkz
+            </a>
+
+            <!-- Rating Summary Card -->
+            <div class="bg-pastel-light rounded-2xl p-4 mt-4 flex justify-around items-center border border-pink-100">
+                <div>
+                    <div class="text-2xl font-bold text-pastel-accent">⭐ {{ avgRating }}</div>
+                    <div class="text-[10px] text-gray-400">คะแนนเฉลี่ย</div>
+                </div>
+                <div class="h-8 w-px bg-pink-200"></div>
+                <div>
+                    <div class="text-2xl font-bold text-pastel-accent">{{ approvedReviews.length }}</div>
+                    <div class="text-[10px] text-gray-400">รีวิวทั้งหมด</div>
+                </div>
+            </div>
+
+            <button @click="showReviewModal = true" class="w-full mt-4 bg-pastel-accent text-white py-3 rounded-2xl font-medium shadow-md hover:bg-pink-500 transition flex items-center justify-center gap-2">
+                <span>💖</span> เขียนรีวิวร้านค้า
+            </button>
+        </div>
+
+        <!-- Review List -->
+        <div class="p-6 space-y-4">
+            <h2 class="text-sm font-semibold text-gray-600 flex items-center gap-1">💬 รีวิวจากลูกค้า</h2>
+            <div v-if="approvedReviews.length === 0" class="text-center py-8 text-xs text-gray-400">ยังไม่มีรีวิวที่อนุมัติในขณะนี้ 🌸</div>
+            
+            <div v-for="item in approvedReviews" :key="item.id" class="bg-white p-4 rounded-2xl shadow-sm border border-pink-100 space-y-2">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-2">
+                        <img :src="item.customer_avatar || defaultAvatar" class="w-8 h-8 rounded-full object-cover">
+                        <div>
+                            <div class="text-xs font-semibold text-pastel-text">{{ item.customer_name }}</div>
+                            <div class="text-[10px] text-gray-400">{{ item.created_at }}</div>
+                        </div>
+                    </div>
+                    <span class="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] px-2 py-0.5 rounded-full font-medium">✔ ยืนยันแล้ว</span>
+                </div>
+                <div class="text-yellow-400 text-xs">{"⭐".repeat(item.rating)}</div>
+                <p class="text-xs text-gray-600 leading-relaxed">{{ item.review_text }}</p>
+                
+                <!-- Proof Images Gallery -->
+                <div v-if="item.images && item.images.length" class="flex gap-2 overflow-x-auto pt-2">
+                    <img v-for="(img, idx) in item.images" :key="idx" :src="img" @click="zoomImage(img)" class="w-16 h-16 rounded-xl object-cover cursor-pointer hover:opacity-80 border border-pink-50">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- BACKEND: Admin Dashboard -->
+    <main v-if="currentTab === 'admin' && isAdminLoggedIn" class="p-4 space-y-6">
+        <div class="flex justify-between items-center bg-pastel-light p-3 rounded-2xl border border-pink-100">
+            <div class="flex items-center gap-2">
+                <img :src="admin.profile_image || defaultAvatar" class="w-10 h-10 rounded-full object-cover border border-white">
+                <div>
+                    <div class="text-xs font-bold text-pastel-accent">Admin Dashboard</div>
+                    <div class="text-[10px] text-gray-500">จัดการรีวิวและตั้งค่าร้าน</div>
+                </div>
+            </div>
+            <button @click="logout" class="text-xs text-red-400 border border-red-200 bg-white px-2.5 py-1 rounded-full">ออก</button>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="bg-amber-50 border border-amber-200 p-2 rounded-xl"><div class="font-bold text-amber-600">{{ pendingReviews.length }}</div><div class="text-[10px]">รอตรวจ</div></div>
+            <div class="bg-emerald-50 border border-emerald-200 p-2 rounded-xl"><div class="font-bold text-emerald-600">{{ approvedReviews.length }}</div><div class="text-[10px]">อนุมัติ</div></div>
+            <div class="bg-rose-50 border border-rose-200 p-2 rounded-xl"><div class="font-bold text-rose-600">{{ rejectedReviews.length }}</div><div class="text-[10px]">ไม่อนุมัติ</div></div>
+        </div>
+
+        <!-- Manage Reviews Panel -->
+        <div class="space-y-3">
+            <h3 class="text-xs font-bold text-gray-600">📋 จัดการรีวิวทั้งหมด</h3>
+            <div v-for="item in reviews" :key="item.id" class="bg-white p-3 rounded-xl border border-pink-100 text-xs space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-pastel-text">{{ item.customer_name }}</span>
+                    <span :class="{'text-amber-500 bg-amber-50': item.status==='Pending', 'text-emerald-500 bg-emerald-50': item.status==='Approved', 'text-red-500 bg-red-50': item.status==='Rejected'}" class="px-2 py-0.5 rounded-full text-[10px] font-medium border">
+                        {{ item.status }}
+                    </span>
+                </div>
+                <div class="text-yellow-400">{"⭐".repeat(item.rating)}</div>
+                <p class="text-gray-600">{{ item.review_text }}</p>
+                <div v-if="item.images && item.images.length" class="flex gap-2">
+                    <img v-for="(img, idx) in item.images" :key="idx" :src="img" @click="zoomImage(img)" class="w-12 h-12 rounded-lg object-cover cursor-pointer">
+                </div>
+                <div class="flex justify-end gap-2 pt-2 border-t border-gray-50">
+                    <button v-if="item.status !== 'Approved'" @click="updateStatus(item.id, 'Approved')" class="bg-emerald-500 text-white px-2.5 py-1 rounded-lg text-[10px]">อนุมัติ</button>
+                    <button v-if="item.status !== 'Rejected'" @click="updateStatus(item.id, 'Rejected')" class="bg-amber-500 text-white px-2.5 py-1 rounded-lg text-[10px]">ปฏิเสธ</button>
+                    <button @click="deleteReview(item.id)" class="bg-red-400 text-white px-2.5 py-1 rounded-lg text-[10px]">ลบ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="bg-pastel-light p-4 rounded-2xl border border-pink-100 space-y-4 text-xs">
+            <h3 class="font-bold text-pastel-accent text-sm">⚙️ ตั้งค่าส่วนตัว & ร้านค้า</h3>
+            
+            <!-- Admin Profile -->
+            <div class="space-y-1">
+                <label class="block font-medium">รูปโปรไฟล์ Admin</label>
+                <div class="flex items-center gap-3">
+                    <img :src="admin.profile_image || defaultAvatar" class="w-12 h-12 rounded-full object-cover bg-white">
+                    <input type="file" @change="uploadAdminAvatar" accept="image/*" class="text-[10px]">
+                </div>
+            </div>
+            
+            <hr class="border-pink-200">
+
+            <!-- Shop Info -->
+            <div class="space-y-2">
+                <label class="block font-medium">ชื่อร้าน</label>
+                <input v-model="shop.shop_name" class="w-full p-2 border border-pink-200 rounded-xl bg-white">
+                <label class="block font-medium">คำอธิบายร้าน</label>
+                <textarea v-model="shop.description" class="w-full p-2 border border-pink-200 rounded-xl bg-white"></textarea>
+                <label class="block font-medium">รูป Cover URL / File</label>
+                <input type="file" @change="uploadShopImage($event, 'cover_image')" accept="image/*" class="w-full">
+                <label class="block font-medium">รูป Profile ร้าน URL / File</label>
+                <input type="file" @change="uploadShopImage($event, 'profile_image')" accept="image/*" class="w-full">
+            </div>
+            <button @click="saveSettings" class="w-full bg-pastel-accent text-white py-2 rounded-xl font-bold">บันทึกข้อมูลตั้งค่า</button>
+        </div>
+    </main>
+
+    <!-- MODAL 1: Write Review -->
+    <transition name="modal">
+        <div v-if="showReviewModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3 shadow-2xl border border-pink-100 text-xs">
+                <div class="flex justify-between items-center border-b border-pink-100 pb-2">
+                    <h3 class="font-bold text-sm text-pastel-accent">💖 เขียนรีวิวให้ Jellybear</h3>
+                    <button @click="showReviewModal = false" class="text-gray-400">✕</button>
+                </div>
+                <input v-model="newReview.customer_name" placeholder="ชื่อ / ชื่อเล่น *" class="w-full p-2.5 border border-pink-200 rounded-xl outline-none">
+                
+                <div>
+                    <span class="text-gray-500">ให้คะแนนร้านค้า:</span>
+                    <div class="flex gap-1 text-xl text-yellow-400 mt-1 cursor-pointer">
+                        <span v-for="star in 5" :key="star" @click="newReview.rating = star">
+                            {{ star <= newReview.rating ? '⭐' : '☆' }}
+                        </span>
+                    </div>
+                </div>
+
+                <textarea v-model="newReview.review_text" placeholder="ข้อความรีวิว..." class="w-full p-2.5 border border-pink-200 rounded-xl h-20 outline-none"></textarea>
+
+                <div>
+                    <label class="block text-gray-500 mb-1">รูปหลักฐานการซื้อขาย (แนบได้หลายรูป):</label>
+                    <input type="file" multiple @change="handleProofUpload" accept="image/*" class="w-full">
+                    <div class="flex gap-2 mt-2 overflow-x-auto">
+                        <div v-for="(img, i) in newReview.images" :key="i" class="relative flex-shrink-0">
+                            <img :src="img" class="w-12 h-12 rounded-lg object-cover">
+                            <button @click="newReview.images.splice(i, 1)" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px]">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button @click="submitReview" class="w-full bg-pastel-accent text-white py-2.5 rounded-xl font-bold shadow-sm">ส่งรีวิวเรียบร้อย 💗</button>
+            </div>
+        </div>
+    </transition>
+
+    <!-- MODAL 2: Login -->
+    <transition name="modal">
+        <div v-if="showLoginModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-5 space-y-3 text-xs">
+                <h3 class="font-bold text-center text-sm text-pastel-accent">🔒 เข้าสู่ระบบ Admin</h3>
+                <input v-model="loginForm.username" placeholder="Username" class="w-full p-2 border border-pink-200 rounded-xl">
+                <input v-model="loginForm.password" type="password" placeholder="Password" class="w-full p-2 border border-pink-200 rounded-xl">
+                <div class="flex gap-2 pt-2">
+                    <button @click="showLoginModal = false" class="w-1/2 bg-gray-100 py-2 rounded-xl text-gray-600">ยกเลิก</button>
+                    <button @click="login" class="w-1/2 bg-pastel-accent text-white py-2 rounded-xl font-bold">เข้าสู่ระบบ</button>
+                </div>
+            </div>
+        </div>
+    </transition>
+
+    <!-- MODAL 3: Image Zoom -->
+    <transition name="modal">
+        <div v-if="activeZoomImage" @click="activeZoomImage = null" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 cursor-pointer">
+            <img :src="activeZoomImage" class="max-w-full max-h-full rounded-2xl shadow-2xl">
+        </div>
+    </transition>
+
+</div>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            currentTab: 'shop',
+            showReviewModal: false,
+            showLoginModal: false,
+            isAdminLoggedIn: false,
+            activeZoomImage: null,
+            defaultAvatar: 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png',
+            loginForm: { username: '', password: '' },
+            
+            // Database State
+            admin: JSON.parse(localStorage.getItem('jb_admin')) || {
+                username: 'admin',
+                password: 'idea0707',
+                profile_image: 'https://cdn-icons-png.flaticon.com/512/4140/4140047.png'
+            },
+            shop: JSON.parse(localStorage.getItem('jb_shop')) || {
+                shop_name: 'Jellybear',
+                description: 'สติกเกอร์ไลน์ หารแอพพรีเมียม ฟอนต์ลายมือ ออกแบบป้าย 🎀',
+                profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+                cover_image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600'
+            },
+            reviews: JSON.parse(localStorage.getItem('jb_reviews')) || [
+                {
+                    id: 1,
+                    customer_name: 'น้องแป้ง',
+                    customer_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100',
+                    rating: 5,
+                    review_text: 'ได้รับสติกเกอร์เร็วมาก ส่งไว ใจดีมีของแถมด้วยค่ะ 💕',
+                    status: 'Approved',
+                    created_at: '24/08/2026',
+                    images: ['https://images.unsplash.com/photo-1607344645866-009c320c5ab8?auto=format&fit=crop&q=80&w=200']
+                }
+            ],
+            newReview: { customer_name: '', rating: 5, review_text: '', images: [] }
+        }
+    },
+    computed: {
+        approvedReviews() { return this.reviews.filter(r => r.status === 'Approved'); },
+        pendingReviews() { return this.reviews.filter(r => r.status === 'Pending'); },
+        rejectedReviews() { return this.reviews.filter(r => r.status === 'Rejected'); },
+        avgRating() {
+            if (!this.approvedReviews.length) return 0;
+            const sum = this.approvedReviews.reduce((acc, curr) => acc + curr.rating, 0);
+            return (sum / this.approvedReviews.length).toFixed(1);
+        }
+    },
+    methods: {
+        saveState() {
+            localStorage.setItem('jb_admin', JSON.stringify(this.admin));
+            localStorage.setItem('jb_shop', JSON.stringify(this.shop));
+            localStorage.setItem('jb_reviews', JSON.stringify(this.reviews));
+        },
+        login() {
+            if(this.loginForm.username === this.admin.username && this.loginForm.password === this.admin.password) {
+                this.isAdminLoggedIn = true;
+                this.showLoginModal = false;
+                this.currentTab = 'admin';
+                this.loginForm = { username: '', password: '' };
+            } else {
+                alert('รหัสผ่านไม่ถูกต้องค่ะ! ( password: idea0707 )');
+            }
+        },
+        logout() {
+            this.isAdminLoggedIn = false;
+            this.currentTab = 'shop';
+        },
+        handleProofUpload(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (evt) => this.newReview.images.push(evt.target.result);
+                reader.readAsDataURL(file);
+            });
+        },
+        submitReview() {
+            if(!this.newReview.customer_name || !this.newReview.review_text) {
+                alert('กรุณากรอกชื่อและข้อความรีวิวให้ครบถ้วนนะคะ');
+                return;
+            }
+            this.reviews.unshift({
+                id: Date.now(),
+                ...this.newReview,
+                customer_avatar: this.defaultAvatar,
+                status: 'Pending',
+                created_at: new Date().toLocaleDateString('th-TH')
+            });
+            this.saveState();
+            this.newReview = { customer_name: '', rating: 5, review_text: '', images: [] };
+            this.showReviewModal = false;
+            alert('ส่งรีวิวเรียบร้อยแล้ว 💗 รอแอดมินตรวจสอบนะคะ');
+        },
+        updateStatus(id, status) {
+            const idx = this.reviews.findIndex(r => r.id === id);
+            if(idx !== -1) {
+                this.reviews[idx].status = status;
+                this.saveState();
+            }
+        },
+        deleteReview(id) {
+            if(confirm('ต้องการลบรีวิวนี้ใช่ไหมคะ?')) {
+                this.reviews = this.reviews.filter(r => r.id !== id);
+                this.saveState();
+            }
+        },
+        uploadAdminAvatar(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    this.admin.profile_image = evt.target.result;
+                    this.saveState();
+                };
+                reader.readAsDataURL(file);
+            }
+        },
+        uploadShopImage(e, key) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => this.shop[key] = evt.target.result;
+                reader.readAsDataURL(file);
+            }
+        },
+        saveSettings() {
+            this.saveState();
+            alert('บันทึกข้อมูลร้านค้าเรียบร้อยแล้ว ✨');
+        },
+        zoomImage(img) {
+            this.activeZoomImage = img;
+        }
+    }
+}).mount('#app');
+</script>
+</body>
+</html>
