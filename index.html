@@ -37,25 +37,23 @@
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
       import { getFirestore, doc, onSnapshot, setDoc, collection, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-      // 🛑 วาง Firebase Config ของคุณตรงนี้เมื่อพร้อมใช้งานจริง 🛑
+      // 🌸 ใส่ Firebase Config ของคุณให้เรียบร้อยแล้วครับ
       const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT.appspot.com",
-        messagingSenderId: "XXXXX",
-        appId: "XXXXX"
+        apiKey: "AIzaSyAUXPQ7zJm1w1UwqgIwZjQd1ZGwAj7YZqA",
+        authDomain: "review-jellybear.firebaseapp.com",
+        projectId: "review-jellybear",
+        storageBucket: "review-jellybear.firebasestorage.app",
+        messagingSenderId: "207133215922",
+        appId: "1:207133215922:web:4f59879f1b58cf5ea2cdab",
+        measurementId: "G-H371D4ESN2"
       };
 
       try {
-        if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            window.fb = { db, doc, onSnapshot, setDoc, collection, addDoc, updateDoc, deleteDoc, query, orderBy, isReady: true };
-        } else {
-            window.fb = { isReady: false };
-        }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.fb = { db, doc, onSnapshot, setDoc, collection, addDoc, updateDoc, deleteDoc, query, orderBy, isReady: true };
       } catch (e) {
+        console.error("Firebase Connection Error:", e);
         window.fb = { isReady: false };
       }
     </script>
@@ -333,10 +331,7 @@ createApp({
                 profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
                 cover_image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600'
             },
-            reviews: [
-                { id: '1', customer_name: 'Neko', rating: 5, review_text: 'แม่ค้าตอบไวน่ารักมากๆ เลยค่ะ บริการประทับใจ 💕', status: 'Approved', created_at: '12/05/2024' },
-                { id: '2', customer_name: 'มินตี้', rating: 5, review_text: 'ได้สติกเกอร์เร็วมาก คุ้มค่าสุดๆ ครับ', status: 'Approved', created_at: '14/05/2024' }
-            ],
+            reviews: [],
             newReview: { customer_name: '', rating: 5, review_text: '', images: [] }
         }
     },
@@ -356,8 +351,6 @@ createApp({
                 clearInterval(timer);
                 if (window.fb.isReady) {
                     this.initFirebaseRealtime();
-                } else {
-                    console.log("ทำงานในโหมด Offline/Mockup (เนื่องจากยังไม่ได้ตั้งค่า Firebase)");
                 }
             }
         }, 100);
@@ -482,20 +475,12 @@ createApp({
                         created_at: new Date().toLocaleDateString('th-TH'),
                         timestamp: Date.now()
                     });
-                } else {
-                    // Mock data local insertion
-                    this.reviews.unshift({
-                        id: Date.now().toString(),
-                        ...this.newReview,
-                        status: 'Pending',
-                        created_at: new Date().toLocaleDateString('th-TH')
-                    });
                 }
                 this.newReview = { customer_name: '', rating: 5, review_text: '', images: [] };
                 this.showReviewModal = false;
-                this.showToast('ส่งรีวิวสำเร็จแล้วค่ะ 💗');
+                this.showToast('ส่งรีวิวสำเร็จแล้วค่ะ 💗 (รอ Admin อนุมัตินะคะ)');
             } catch (err) {
-                this.showToast('เกิดข้อผิดพลาดในการส่งรีวิว', 'error');
+                this.showToast('เกิดข้อผิดพลาดในการส่งรีวิว กรุณาเช็ก Firestore Rules', 'error');
             } finally {
                 this.isSubmitting = false;
             }
@@ -506,9 +491,6 @@ createApp({
                 if (window.fb && window.fb.isReady) {
                     const { db, doc, updateDoc } = window.fb;
                     await updateDoc(doc(db, "jellybear_reviews", id), { status });
-                } else {
-                    const target = this.reviews.find(r => r.id === id);
-                    if (target) target.status = status;
                 }
                 this.showToast(`อัปเดตสถานะเป็น ${status} แล้วค่ะ`);
             } catch (err) {
@@ -522,8 +504,6 @@ createApp({
                     if (window.fb && window.fb.isReady) {
                         const { db, doc, deleteDoc } = window.fb;
                         await deleteDoc(doc(db, "jellybear_reviews", id));
-                    } else {
-                        this.reviews = this.reviews.filter(r => r.id !== id);
                     }
                     this.showToast('ลบรีวิวเรียบร้อยแล้วค่ะ');
                 } catch (err) {
